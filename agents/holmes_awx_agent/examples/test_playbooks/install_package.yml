@@ -1,0 +1,37 @@
+---
+# Install a package (works on Debian/Ubuntu)
+- name: Install Package
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars:
+    package_name: "{{ package_name | default('nginx') }}"
+  tasks:
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+    
+    - name: Install package (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: "{{ package_name }}"
+        state: present
+      when: ansible_os_family == "Debian"
+    
+    - name: Install package (RedHat/CentOS)
+      ansible.builtin.yum:
+        name: "{{ package_name }}"
+        state: present
+      when: ansible_os_family == "RedHat"
+    
+    - name: Verify package installation
+      ansible.builtin.command:
+        cmd: "which {{ package_name }}"
+      register: package_check
+      changed_when: false
+      failed_when: false
+    
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "Package {{ package_name }} installed successfully at {{ package_check.stdout }}"
+

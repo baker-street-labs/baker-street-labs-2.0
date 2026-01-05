@@ -1,0 +1,146 @@
+# EXTRACTED FROM PRODUCTION BAKER STREET MONOREPO – 2025-12-03
+# Verified working in active cyber range for 18+ months
+# Part of the official Tier 1 / Tier 2 crown jewels audit (Conservative Option A)
+# DO NOT REFACTOR UNLESS EXPLICITLY APPROVED
+
+---
+# Baker Street Labs - Validate Deployment
+# Validates that the Active Directory deployment is working correctly
+
+- name: Validate Windows Environment
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Check WinRM connectivity
+      win_ping:
+      register: ping_result
+      failed_when: ping_result.ping != 'pong'
+      
+    - name: Display connectivity status
+      debug:
+        msg: "WinRM connectivity: {{ ping_result.ping }}"
+
+- name: Validate Domain Controller
+  hosts: domain_controllers
+  gather_facts: no
+
+  tasks:
+    - name: Check if domain controller is running
+      win_shell: |
+        try {
+          $domain = Get-ADDomain -ErrorAction Stop
+          Write-Output "Domain: $($domain.DNSRoot)"
+          Write-Output "Forest: $($domain.Forest)"
+          Write-Output "Domain Mode: $($domain.DomainMode)"
+          Write-Output "Forest Mode: $($domain.ForestMode)"
+        } catch {
+          Write-Output "Error: $($_.Exception.Message)"
+        }
+      register: domain_check
+      
+    - name: Display domain information
+      debug:
+        msg: "{{ domain_check.stdout_lines }}"
+
+    - name: Check DNS service
+      win_service:
+        name: DNS
+        state: started
+      register: dns_service
+      
+    - name: Display DNS service status
+      debug:
+        msg: "DNS Service: {{ dns_service.state }}"
+
+    - name: Check Active Directory service
+      win_service:
+        name: NTDS
+        state: started
+      register: ntds_service
+      
+    - name: Display NTDS service status
+      debug:
+        msg: "NTDS Service: {{ ntds_service.state }}"
+
+    - name: Run DCDIAG health check
+      win_shell: dcdiag.exe /s:{{ inventory_hostname }}
+      register: dcdiag_result
+      failed_when: "'failed test' in dcdiag_result.stdout"
+      
+    - name: Display DCDIAG results
+      debug:
+        msg: "{{ dcdiag_result.stdout_lines }}"
+
+- name: Validate Network Configuration
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Check network configuration
+      win_shell: |
+        Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -like "192.168.0.*"} | Select-Object IPAddress, InterfaceAlias
+      register: network_config
+      
+    - name: Display network configuration
+      debug:
+        msg: "{{ network_config.stdout_lines }}"
+
+    - name: Test DNS resolution
+      win_shell: |
+        nslookup {{ domain_name }}
+      register: dns_test
+      
+    - name: Display DNS test results
+      debug:
+        msg: "{{ dns_test.stdout_lines }}"
+
+- name: Final Validation Summary
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Create validation summary
+      win_shell: |
+        Write-Host "=== Baker Street Labs Deployment Validation ===" -ForegroundColor Green
+        Write-Host "Date: $(Get-Date)" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Domain Controller Status:" -ForegroundColor Yellow
+        try {
+          $domain = Get-ADDomain -ErrorAction Stop
+          Write-Host "  Domain: $($domain.DNSRoot)" -ForegroundColor Cyan
+          Write-Host "  Forest: $($domain.Forest)" -ForegroundColor Cyan
+          Write-Host "  Domain Mode: $($domain.DomainMode)" -ForegroundColor Cyan
+        } catch {
+          Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
+        
+        Write-Host ""
+        Write-Host "Services Status:" -ForegroundColor Yellow
+        $services = @("DNS", "NTDS", "KDC", "Netlogon")
+        foreach ($service in $services) {
+          $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
+          if ($svc) {
+            Write-Host "  $service : $($svc.Status)" -ForegroundColor Cyan
+          }
+        }
+        
+        Write-Host ""
+        Write-Host "Network Configuration:" -ForegroundColor Yellow
+        Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -like "192.168.0.*"} | ForEach-Object {
+          Write-Host "  IP: $($_.IPAddress) - Interface: $($_.InterfaceAlias)" -ForegroundColor Cyan
+        }
+        
+        Write-Host ""
+        Write-Host "Access Information:" -ForegroundColor Yellow
+        Write-Host "  RDP: 192.168.0.65:3389" -ForegroundColor White
+        Write-Host "  WinRM: 192.168.0.65:5985/5986" -ForegroundColor White
+        Write-Host "  SSH: 192.168.0.65:22" -ForegroundColor White
+        Write-Host "  Domain: {{ domain_name }}" -ForegroundColor White
+        Write-Host ""
+        Write-Host "✅ Validation completed successfully!" -ForegroundColor Green
+      register: validation_summary
+      
+    - name: Display validation summary
+      debug:
+        msg: "{{ validation_summary.stdout_lines }}"

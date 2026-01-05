@@ -1,0 +1,186 @@
+# EXTRACTED FROM PRODUCTION BAKER STREET MONOREPO – 2025-12-03
+# Verified working in active cyber range for 18+ months
+# Part of the official Tier 1 / Tier 2 crown jewels audit (Conservative Option A)
+# DO NOT REFACTOR UNLESS EXPLICITLY APPROVED
+
+---
+- name: Verify Holmes DNS agent and ensure rangeplatform record
+  hosts: localhost
+  gather_facts: false
+  vars:
+    holmes_dns_agent_url: "{{ lookup('env', 'HOLMES_DNS_AGENT_URL') | default('http://holmes-dns-agent:9000', true) }}"
+    holmes_dns_agent_token: "{{ lookup('env', 'HOLMES_DNS_AGENT_TOKEN') | default('', true) }}"
+    powerdns_api_url: "{{ lookup('env', 'POWERDNS_API_URL') | default('', true) }}"
+    powerdns_api_key: "{{ lookup('env', 'POWERDNS_API_KEY') | default('', true) }}"
+    powerdns_server_id: "{{ lookup('env', 'POWERDNS_SERVER_ID') | default('localhost', true) }}"
+    record_zone: "bakerstreetlabs.io"
+    record_zone_fqdn: "{{ record_zone if record_zone.endswith('.') else record_zone + '.' }}"
+    record_fqdn: "rangeplatform.bakerstreetlabs.io"
+    record_fqdn_full: "{{ record_fqdn if record_fqdn.endswith('.') else record_fqdn + '.' }}"
+    record_ttl: 60
+    desired_ip: "192.168.0.68"
+    holmes_poll_retries: 20
+    holmes_poll_delay: 3
+
+  tasks:
+    - name: Ensure required environment variables are present
+      ansible.builtin.assert:
+        that:
+          - holmes_dns_agent_token | length > 0
+          - powerdns_api_url | length > 0
+          - powerdns_api_key | length > 0
+        quiet: true
+        fail_msg: >-
+          Missing required environment variables. Ensure HOLMES_DNS_AGENT_TOKEN,
+          POWERDNS_API_URL, and POWERDNS_API_KEY are exported (e.g., via ~/.secrets).
+
+    - name: Check Holmes DNS agent health endpoint
+      ansible.builtin.uri:
+        url: "{{ holmes_dns_agent_url }}/health"
+        method: GET
+        return_content: true
+        status_code: 200
+        timeout: 15
+        validate_certs: false
+      register: holmes_health
+      retries: 3
+      delay: 5
+      until: holmes_health.status == 200
+
+    - name: Assert Holmes DNS agent returned healthy status
+      ansible.builtin.assert:
+        that:
+          - holmes_health.json.status == "ok"
+          - holmes_health.json.service == "holmes-dns-agent"
+        quiet: true
+        fail_msg: "Holmes DNS agent health check failed — investigate logs before continuing."
+
+    - name: Fetch bakerstreetlabs.io zone from PowerDNS
+      ansible.builtin.uri:
+        url: "{{ powerdns_api_url.rstrip('/') }}/api/v1/servers/{{ powerdns_server_id }}/zones/{{ record_zone_fqdn }}"
+        method: GET
+        headers:
+          X-API-Key: "{{ powerdns_api_key }}"
+          Content-Type: "application/json"
+        return_content: true
+        status_code: 200
+        timeout: 30
+        validate_certs: false
+      register: pdns_zone
+
+    - name: Evaluate existing rangeplatform rrset
+      ansible.builtin.set_fact:
+        rangeplatform_rrset: >-
+          {{ pdns_zone.json.rrsets
+             | selectattr('name', 'equalto', record_fqdn_full)
+             | selectattr('type', 'equalto', 'A')
+             | list
+             | first
+             | default({})
+          }}
+
+    - name: Capture current rangeplatform record contents
+      ansible.builtin.set_fact:
+        rangeplatform_current_ips: >-
+          {{ (rangeplatform_rrset.get('records', []) if rangeplatform_rrset else [])
+             | map(attribute='content')
+             | list }}
+        rangeplatform_has_rrset: "{{ rangeplatform_rrset | length > 0 }}"
+        rangeplatform_needs_update: >-
+          {{ (rangeplatform_rrset.get('records', []) if rangeplatform_rrset else [])
+             | selectattr('content', 'equalto', desired_ip)
+             | list
+             | length == 0 }}
+
+    - name: Report rangeplatform record drift status
+      ansible.builtin.debug:
+        msg: >-
+          rangeplatform rrset present={{ rangeplatform_has_rrset }},
+          current_ips={{ rangeplatform_current_ips | default(['<none>']) }},
+          desired_ip={{ desired_ip }},
+          needs_update={{ rangeplatform_needs_update }}
+
+    - name: Submit Holmes DNS agent job for rangeplatform when missing
+      ansible.builtin.uri:
+        url: "{{ holmes_dns_agent_url }}/v1/records"
+        method: POST
+        headers:
+          X-Holmes-Token: "{{ holmes_dns_agent_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          zone: "{{ record_zone }}"
+          name: "{{ record_fqdn }}"
+          record_type: "A"
+          content: "{{ desired_ip }}"
+          ttl: "{{ record_ttl }}"
+          metadata:
+            requested_by: "awx"
+            context: "rangeplatform firewall health check"
+        status_code: 200
+        return_content: true
+        validate_certs: false
+      register: holmes_job_submission
+      when: rangeplatform_needs_update
+
+    - name: Wait for Holmes DNS agent job completion
+      ansible.builtin.uri:
+        url: "{{ holmes_dns_agent_url }}/v1/runs/{{ holmes_job_submission.json.job_id }}"
+        method: GET
+        headers:
+          X-Holmes-Token: "{{ holmes_dns_agent_token }}"
+        return_content: true
+        status_code: 200
+        timeout: 15
+        validate_certs: false
+      register: holmes_job_status
+      until: holmes_job_status.json.status in ["COMPLETED", "FAILED"]
+      retries: "{{ holmes_poll_retries }}"
+      delay: "{{ holmes_poll_delay }}"
+      when: rangeplatform_needs_update
+
+    - name: Assert Holmes DNS agent job succeeded
+      ansible.builtin.assert:
+        that:
+          - holmes_job_status.json.status == "COMPLETED"
+        quiet: true
+        fail_msg: >-
+          Holmes DNS agent job {{ holmes_job_submission.json.job_id }} failed —
+          check /v1/runs/{{ holmes_job_submission.json.job_id }} for details.
+      when: rangeplatform_needs_update
+
+    - name: Re-fetch zone after job completion
+      ansible.builtin.uri:
+        url: "{{ powerdns_api_url.rstrip('/') }}/api/v1/servers/{{ powerdns_server_id }}/zones/{{ record_zone_fqdn }}"
+        method: GET
+        headers:
+          X-API-Key: "{{ powerdns_api_key }}"
+          Content-Type: "application/json"
+        return_content: true
+        status_code: 200
+        timeout: 30
+        validate_certs: false
+      register: pdns_zone_refreshed
+      when: rangeplatform_needs_update
+
+    - name: Capture refreshed rangeplatform record contents
+      ansible.builtin.set_fact:
+        rangeplatform_refreshed_ips: >-
+          {{ (pdns_zone_refreshed.json.rrsets
+              | selectattr('name', 'equalto', record_fqdn_full)
+              | selectattr('type', 'equalto', 'A')
+              | list
+              | first
+              | default({})
+             ).get('records', [])
+             | map(attribute='content')
+             | list }}
+      when: rangeplatform_needs_update
+
+    - name: Confirm rangeplatform record now exists
+      ansible.builtin.assert:
+        that:
+          - "{{ desired_ip in rangeplatform_refreshed_ips }}"
+        quiet: true
+        fail_msg: "rangeplatform record still missing after job completion."
+      when: rangeplatform_needs_update

@@ -1,0 +1,10 @@
+---
+# Simple hello world playbook for AWX testing
+- name: Hello World Test
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Print hello message
+      ansible.builtin.debug:
+        msg: "Hello from Holmes AWX Agent! This is a test job template."
+

@@ -1,0 +1,15 @@
+---
+# Gather system information
+- name: Gather System Information
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Display system information
+      ansible.builtin.debug:
+        msg:
+          - "Hostname: {{ ansible_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Memory: {{ ansible_memtotal_mb }}MB"
+          - "CPU Cores: {{ ansible_processor_cores }}"
+
