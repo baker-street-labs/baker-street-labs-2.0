@@ -1,0 +1,9 @@
+# MIGRATED FROM MONO-REPO – 2026-01-08 – Verified working
+# TAG: KEEP_AS_IS
+# Battle-tested, working in production
+# Original path: E:\projects\baker-street-labs\terraform\cloud-init\meta-data.yml
+#
+instance-id: ${instance_id}
+local-hostname: ${hostname}
+
+

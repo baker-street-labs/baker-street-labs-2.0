@@ -1,0 +1,26 @@
+# MIGRATED FROM MONO-REPO – 2026-01-08 – Verified working
+# TAG: KEEP_AS_IS
+# Battle-tested, working in production
+# Original path: E:\projects\baker-street-labs\ansible\inventory\hosts
+#
+# Baker Street Labs - Ansible Inventory
+# Defines the Windows hosts for configuration management
+
+[domain_controllers]
+ad01 ansible_host=192.168.0.65
+
+[all:vars]
+ansible_user=Administrator
+ansible_password=Cortex Rocks1!
+ansible_connection=winrm
+ansible_winrm_transport=basic
+ansible_winrm_server_cert_validation=ignore
+ansible_port=5986
+ansible_winrm_read_timeout_sec=300
+ansible_winrm_operation_timeout_sec=300
+
+[domain_controllers:vars]
+domain_name=ad.bakerstreetlabs.io
+netbios_name=BAKERSTREET
+
+

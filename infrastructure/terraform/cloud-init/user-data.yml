@@ -1,0 +1,210 @@
+# MIGRATED FROM MONO-REPO – 2026-01-08 – Verified working
+# TAG: KEEP_AS_IS
+# Battle-tested, working in production
+# Original path: E:\projects\baker-street-labs\terraform\cloud-init\user-data.yml
+#
+#cloud-config
+# Baker Street Labs - Windows Server 2025 Cloud-Init Configuration
+# This enables completely headless deployment with WinRM and SSH
+
+# Set hostname
+hostname: ${hostname}
+fqdn: ${hostname}.${domain}
+
+# Network configuration
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses:
+        - ${ip}/24
+      gateway4: ${gateway}
+      nameservers:
+        addresses: [${dns}]
+
+# User configuration
+users:
+  - name: Administrator
+    password: Cortex Rocks1!
+    groups: [Administrators]
+    shell: /bin/bash
+
+# Run commands for headless setup
+runcmd:
+  - echo "Starting Baker Street Labs headless configuration..."
+  - powershell -ExecutionPolicy Bypass -File C:\Windows\Temp\headless_setup.ps1
+
+# Write files for headless configuration
+write_files:
+  - path: C:\Windows\Temp\headless_setup.ps1
+    content: |
+      # Baker Street Labs - Headless Windows Server 2025 Setup
+      # This script enables WinRM, SSH, and prepares for remote management
+      
+      Write-Host "=== Baker Street Labs Headless Setup ===" -ForegroundColor Green
+      Write-Host "Starting headless configuration at: $(Get-Date)" -ForegroundColor Green
+      
+      # Set execution policy
+      Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+      
+      # Configure Network Interface
+      Write-Host "Step 1: Configuring Network Interface..." -ForegroundColor Yellow
+      try {
+          $networkAdapter = Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object -First 1
+          if ($networkAdapter) {
+              # Remove existing IP configuration
+              Remove-NetIPAddress -InterfaceAlias $networkAdapter.Name -Confirm:$false -ErrorAction SilentlyContinue
+              Remove-NetRoute -InterfaceAlias $networkAdapter.Name -Confirm:$false -ErrorAction SilentlyContinue
+              
+              # Configure static IP
+              New-NetIPAddress -IPAddress "192.168.0.65" -PrefixLength 24 -InterfaceAlias $networkAdapter.Name -DefaultGateway "192.168.0.1" -ErrorAction Stop
+              Set-DnsClientServerAddress -InterfaceAlias $networkAdapter.Name -ServerAddresses "192.168.0.10", "192.168.0.11" -ErrorAction Stop
+              
+              Write-Host "✅ Network configured: 192.168.0.65/24" -ForegroundColor Green
+          } else {
+              Write-Host "❌ No network adapter found!" -ForegroundColor Red
+              exit 1
+          }
+      } catch {
+          Write-Host "❌ Network configuration failed: $($_.Exception.Message)" -ForegroundColor Red
+          exit 1
+      }
+      
+      # Rename Computer
+      Write-Host "Step 2: Renaming computer to AD01..." -ForegroundColor Yellow
+      try {
+          Rename-Computer -NewName "AD01" -Force -ErrorAction Stop
+          Write-Host "✅ Computer renamed to AD01" -ForegroundColor Green
+      } catch {
+          Write-Host "❌ Computer rename failed: $($_.Exception.Message)" -ForegroundColor Red
+          exit 1
+      }
+      
+      # Enable WinRM for remote management
+      Write-Host "Step 3: Configuring WinRM for remote management..." -ForegroundColor Yellow
+      try {
+          # Configure WinRM
+          winrm quickconfig -q
+          winrm set winrm/config/service '@{AllowUnencrypted="false"}'
+          winrm set winrm/config/service/auth '@{Basic="true"}'
+          winrm set winrm/config/service '@{MaxConcurrentOperations="4294967295"}'
+          winrm set winrm/config/service '@{MaxConcurrentOperationsPerUser="1500"}'
+          winrm set winrm/config/service '@{MaxConnections="25"}'
+          
+          # Enable WinRM Firewall Rules
+          Enable-NetFirewallRule -DisplayGroup "Windows Remote Management" -ErrorAction Stop
+          
+          Write-Host "✅ WinRM configured for remote management" -ForegroundColor Green
+      } catch {
+          Write-Host "❌ WinRM configuration failed: $($_.Exception.Message)" -ForegroundColor Red
+          exit 1
+      }
+      
+      # Install OpenSSH Server for SSH access
+      Write-Host "Step 4: Installing OpenSSH Server..." -ForegroundColor Yellow
+      try {
+          # Install OpenSSH Server
+          Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction Stop
+          
+          # Start and Configure SSH Service
+          Start-Service sshd
+          Set-Service -Name sshd -StartupType 'Automatic'
+          
+          # Configure SSH for key-based authentication
+          $sshd_config = @"
+      Port 22
+      Protocol 2
+      HostKey /etc/ssh/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_ecdsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      LoginGraceTime 120
+      PermitRootLogin yes
+      StrictModes yes
+      PubkeyAuthentication yes
+      PasswordAuthentication yes
+      PermitEmptyPasswords no
+      ChallengeResponseAuthentication no
+      UsePAM yes
+      X11Forwarding yes
+      PrintMotd no
+      AcceptEnv LANG LC_*
+      Subsystem sftp /usr/lib/openssh/sftp-server
+      "@
+          
+          $sshd_config | Out-File -FilePath "C:\ProgramData\ssh\sshd_config" -Encoding ASCII
+          
+          # Restart SSH Service
+          Restart-Service sshd
+          
+          Write-Host "✅ OpenSSH Server installed and configured" -ForegroundColor Green
+      } catch {
+          Write-Host "❌ OpenSSH Server installation failed: $($_.Exception.Message)" -ForegroundColor Red
+          exit 1
+      }
+      
+      # Enable Remote Desktop
+      Write-Host "Step 5: Enabling Remote Desktop..." -ForegroundColor Yellow
+      try {
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction Stop
+          Write-Host "✅ Remote Desktop enabled" -ForegroundColor Green
+      } catch {
+          Write-Host "❌ Remote Desktop configuration failed: $($_.Exception.Message)" -ForegroundColor Red
+          exit 1
+      }
+      
+      # Configure Windows Updates
+      Write-Host "Step 6: Configuring Windows Updates..." -ForegroundColor Yellow
+      try {
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "NoAutoUpdate" -Value 0
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "AUOptions" -Value 4
+          Write-Host "✅ Windows Updates configured" -ForegroundColor Green
+      } catch {
+          Write-Host "⚠️ Windows Updates configuration may need manual completion" -ForegroundColor Yellow
+      }
+      
+      # Create baseline user for automation
+      Write-Host "Step 7: Creating automation user..." -ForegroundColor Yellow
+      try {
+          $password = ConvertTo-SecureString "Cortex Rocks1!" -AsPlainText -Force
+          New-LocalUser -Name "BakerStreetAdmin" -Password $password -FullName "Baker Street Admin" -Description "Baker Street Labs Administrator" -ErrorAction Stop
+          Add-LocalGroupMember -Group "Administrators" -Member "BakerStreetAdmin" -ErrorAction Stop
+          Write-Host "✅ Automation user created" -ForegroundColor Green
+      } catch {
+          Write-Host "⚠️ User creation may need manual completion" -ForegroundColor Yellow
+      }
+      
+      # Create SSH authorized_keys directory and add public key
+      Write-Host "Step 8: Configuring SSH key authentication..." -ForegroundColor Yellow
+      try {
+          # Create .ssh directory for Administrator
+          $sshDir = "C:\Users\Administrator\.ssh"
+          if (!(Test-Path $sshDir)) {
+              New-Item -ItemType Directory -Path $sshDir -Force
+          }
+          
+          # Add public key for passwordless SSH access
+          $publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC08Zc304EEDlbdKrPSm2NfDgmi7h8mHGQ8G3nYGzsO3VGaEglK1r85MdCyFhM0fQC5fTdnxJ5axd9oeAPow7Gc+epIGylPhSyyu2liae/p6nT3slIuj7akJZT+W4kYDnzk/q7h7vXK6ALhooaqB0zoWhXcvoPVpX6Lf4ijbxF0dmTdPiA+sfFxuqhpkjaZQidCNNz896IUDe9jyM73VzMWIeP6fG6A+/bqIGxkkUQY6Xqmlpn/hE5MDlywZSoBeSSw6DdgIZbzXveA/QGniqpf4ZgwL+MXe65NA0BRm5RQBXuxQGP4eiuHGk9YyM+SZJ8BTM2daCbgHEy9ioIBdH1um2BTLYm+QNprMhQPgDODJ5Az3F3ef1qM6gTppJl3Y0VPzpTJq9AKQ2fYw4XTzpgDoDGkDrCHUwg49tDUCwEHEQUXbVVVKrzNdyw2LcScuYILYzItEr13tLdzt76hN1et1WEl3vWhKT6EDKFH6BhSLuaDbAgIm198CW+obK9+66GR/uTOkwKeoeSg2EL9T+3wXtAol4yD237MarWtVCZpG+hU001b+hFK4vmsjXFU3DkzhkY6fy7G1T61UegILw7vUJ+RjiQw2jYgVs13hBjd09h39EQdZVOvcOxYb+kiNo+5SkVl/H/B2BLvkVEWGpARopHkGagwIjk3+GwHLR+UVw== administrator@baker-street-jump-01"
+          
+          $publicKey | Out-File -FilePath "$sshDir\authorized_keys" -Encoding ASCII
+          
+          # Set proper permissions
+          icacls "$sshDir\authorized_keys" /inheritance:r /grant:r "Administrator:(R)"
+          icacls "$sshDir" /inheritance:r /grant:r "Administrator:(OI)(CI)(F)"
+          
+          Write-Host "✅ SSH key authentication configured" -ForegroundColor Green
+      } catch {
+          Write-Host "⚠️ SSH key configuration may need manual completion" -ForegroundColor Yellow
+      }
+      
+      Write-Host ""
+      Write-Host "🎉 Headless Windows Server Setup Complete!" -ForegroundColor Green
+      Write-Host "Server is now ready for remote management via:" -ForegroundColor Cyan
+      Write-Host "  - WinRM: 192.168.0.65:5985" -ForegroundColor White
+      Write-Host "  - SSH: 192.168.0.65:22" -ForegroundColor White
+      Write-Host "  - RDP: 192.168.0.65:3389" -ForegroundColor White
+      Write-Host ""
+      Write-Host "Next step: Run AD configuration via remote management" -ForegroundColor Yellow
+
+
