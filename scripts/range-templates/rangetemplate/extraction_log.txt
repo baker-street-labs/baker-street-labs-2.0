@@ -1,0 +1,23 @@
+﻿ERROR: At E:\Baker Street Labs v.2\baker-street-labs-2.0\scripts\range-templates\rangetemplate\rangetemplate_extract.ps1:574 char:32
++     Write-Warning "Stack trace:"
++                                ~
+The string is missing the terminator: ".
+
+At E:\Baker Street Labs v.2\baker-street-labs-2.0\scripts\range-templates\rangetemplate\rangetemplate_extract.ps1:491 char:22
++         if ($config) {
++                      ~
+Missing closing '}' in statement block or type definition.
+
+At E:\Baker Street Labs v.2\baker-street-labs-2.0\scripts\range-templates\rangetemplate\rangetemplate_extract.ps1:487 char:27
++     foreach ($vm in $vms) {
++                           ~
+Missing closing '}' in statement block or type definition.
+
+At E:\Baker Street Labs v.2\baker-street-labs-2.0\scripts\range-templates\rangetemplate\rangetemplate_extract.ps1:396 char:5
++ try {
++     ~
+Missing closing '}' in statement block or type definition.
+
+At E:\Baker Street Labs v.2\baker-street-labs-2.0\scripts\range-templates\rangetemplate\rangetemplate_extract.ps1:586 char:1
++ 
+The Try statement is missing its Catch or Finally block.
