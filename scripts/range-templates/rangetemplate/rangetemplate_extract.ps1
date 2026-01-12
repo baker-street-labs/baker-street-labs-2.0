@@ -42,11 +42,20 @@ param(
     [string]$vCenterServer = "10.55.250.97",
     [string]$OutputFile = "rangetemplate_vms.json",
     [string]$FolderName = "rangetemplate",
-    [string]$SecretsFile = if ($env:SECRETS_FILE) { $env:SECRETS_FILE } else { "$PSScriptRoot\..\..\..\..\.secrets" }
+    [string]$SecretsFile = ""
 )
 
 # Error handling
 $ErrorActionPreference = "Stop"
+
+# Set default secrets file if not provided
+if ([string]::IsNullOrEmpty($SecretsFile)) {
+    if ($env:SECRETS_FILE) {
+        $SecretsFile = $env:SECRETS_FILE
+    } else {
+        $SecretsFile = "$PSScriptRoot\..\..\..\..\.secrets"
+    }
+}
 
 # Function to read credentials from .secrets file
 function Get-Secrets {
@@ -562,8 +571,7 @@ try {
 }
 catch {
     Write-Error "Script failed: $_"
-    Write-Warning "Stack trace:"
-    Write-Warning $_.ScriptStackTrace
+    Write-Warning "Stack trace: $($_.ScriptStackTrace)"
     
     # Try to disconnect if connected
     try {

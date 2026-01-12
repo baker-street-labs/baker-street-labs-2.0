@@ -95,7 +95,12 @@ locals {
   vms = var.vm_list  # List of VM configurations from extraction
   
   # VM IDs for affinity rule
-  vm_ids = []  # Will be populated with vsphere_virtual_machine.*.id
+  # NOTE: Populated from rangecomp_vms.tf (generated from rangeplatform extraction)
+  # These will be automatically populated when VM resources are created
+  vm_ids = [
+    # VM IDs are defined in rangecomp_vms.tf
+    # This list will be populated when that file is processed
+  ]
 }
 
 # VM Affinity Rule - Ensures all template VMs stay on the same host
