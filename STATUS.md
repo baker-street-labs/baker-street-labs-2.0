@@ -101,6 +101,58 @@ None at this time.
 
 ---
 
+## Troubleshooting Log
+
+### [2026-01-11] - Range Template Extraction Script Syntax Error
+
+**Issue**: PowerCLI extraction script (`scripts/range-templates/rangetemplate/rangetemplate_extract.ps1`) has a syntax error preventing execution.
+
+**Error Message**:
+```
+The string is missing the terminator: ".
+At line 327: Write-Warning "Stack trace:"
+```
+
+**Status**: 🔴 **Open** - Script created but not yet tested/executed
+
+**Details**:
+- Script was created to extract VM configurations from vCenter folder (template-based)
+- PowerShell parser reports missing string terminator in catch block
+- May be encoding issue or hidden character in file
+- Script needs to be tested and debugged
+
+**Workaround**:
+- Script structure is complete but needs debugging
+- Terraform templates created as placeholders pending extraction data
+- Documentation templates created for future population
+
+**Next Steps**:
+1. Debug PowerShell script syntax error
+2. Test script execution against vCenter
+3. Verify JSON output format
+4. Generate Terraform configuration from extracted JSON
+5. Update documentation with actual VM data
+
+---
+
+## Security Audit (2026-01-11)
+
+### Range Template Extraction
+
+**Status**: ✅ **SECURE** - No hardcoded credentials found
+
+**Files Audited**: 6 files (PowerShell scripts, Terraform configs, documentation)
+
+**Findings**:
+- ✅ No hardcoded passwords or API keys
+- ✅ Credentials read from `.secrets` file
+- ✅ Terraform variables marked `sensitive = true`
+- ✅ All issues resolved (hardcoded path fixed, examples genericized)
+
+**Result**: All files follow security best practices. Credentials properly externalized.
+
+---
+
 ## Infrastructure Metrics
 
 ### AWX Resource Usage

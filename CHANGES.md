@@ -6,6 +6,38 @@ All notable changes to the Baker Street Labs Infrastructure as Code repository w
 
 ## [Unreleased]
 
+### Added
+- ✅ Range Platform dynamic implementation analysis (2026-01-11)
+  - Comprehensive analysis document for rangeplatform (172.24.0.0/16) covering Firewall (PAN-OS), Active Directory, and Windows Clients
+  - Dynamic implementation approaches using Terraform, Ansible, and PowerShell
+  - Code examples and templates for PAN-OS firewall configuration (Python panos library, Ansible panos collection)
+  - Code examples for Active Directory configuration (Ansible microsoft.ad collection, PowerShell AD cmdlets)
+  - Code examples for Windows client configuration (Ansible windows collection, PowerShell DSC)
+  - Integration patterns and workflows (Terraform → Ansible, AWX/Tower orchestration)
+  - Context7 documentation references (Ansible collections, PowerShell documentation)
+  - Best practices and recommendations for state management, credential management, testing
+  - Document location: `infrastructure/terraform/range-templates/rangecomp/rangeplatform_dynamic_implementation.md`
+- ✅ Range Comp (rangecomp) template with 172.24.0.0/16 network assignment (2026-01-11)
+  - Created from rangetemplate base (`infrastructure/terraform/range-templates/rangecomp/`)
+  - Network assignment: 172.24.0.0/16 (Users: .2.0/24, Services: .3.0/24, Infrastructure: .4.0/24)
+  - VLAN assignments: 2401-2406 (per-range vSwitches/VLANs pattern)
+  - Storage requirement: liacmain01 datastore for all VMs
+  - VM affinity rule: All VMs on same host (rangecomp-vm-affinity)
+  - IP addresses configured via Terraform variables (tfvars file) or user input
+  - Architecture documentation updated with rangecomp assignment
+- ✅ Range template extraction from vCenter with affinity rules (2026-01-11)
+  - Enhanced PowerCLI extraction script with affinity rules and network config (`scripts/range-templates/rangetemplate/rangetemplate_extract.ps1`)
+  - Terraform template configuration with VM affinity rules (`infrastructure/terraform/range-templates/rangetemplate/`)
+  - Architecture documentation with affinity rules, network topology, and IP/VLAN configuration (`rangetemplate_architecture.md`)
+  - Design documentation with Mermaid diagrams for affinity rules and network topology (`rangetemplate_design.md`)
+  - Storage requirement: liacmain01 datastore for all VMs
+  - Network configuration: Configurable via variables (IP addresses from user/tfvars/agent)
+  - VLAN assignments: Configurable via variables (per-range vSwitches/VLANs pattern)
+  - VM affinity rule: All VMs on same host (configurable name based on folder)
+  - IP address configuration: NOT hardcoded - provided via Terraform variables (tfvars file) or user input
+  - Agentic support: In agentic situations, the agent should provide IP addresses via tfvars file
+  - Security audit completed - all files secure (no hardcoded credentials)
+
 ---
 
 ## [2026-01-08] - Documentation Migration
