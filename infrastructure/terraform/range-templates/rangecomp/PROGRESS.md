@@ -1,4 +1,4 @@
-# Range Comp Build Progress
+﻿# Range Comp Build Progress
 
 **Build Started**: 2026-01-11  
 **Model**: rangeplatform (172.24.0.0/16)  
@@ -18,7 +18,7 @@ All commands executed during the rangecomp build process are logged below.
 #### Step 1.1: Create Progress Tracking
 **Timestamp**: 2026-01-11  
 **Command**: Created PROGRESS.md file  
-**Status**: ✅ Complete
+**Status**: âœ… Complete
 
 #### Step 1.2: Verify Script and Prerequisites
 **Timestamp**: 2026-01-11  
@@ -34,7 +34,7 @@ Get-Module -ListAvailable -Name VMware.PowerCLI
 # Check secrets file
 Test-Path "e:\Baker Street Labs v.2\.secrets"
 ```
-**Status**: ✅ Complete - Script found, checking prerequisites
+**Status**: âœ… Complete - Script found, checking prerequisites
 
 #### Step 1.3: Fix PowerShell Script Syntax Errors
 **Timestamp**: 2026-01-11  
@@ -51,7 +51,7 @@ Test-Path "e:\Baker Street Labs v.2\.secrets"
 # Fix 1: Updated SecretsFile parameter handling
 # Fix 2: Changed Write-Warning "Stack trace:" to Write-Warning "Stack trace: $($_.ScriptStackTrace)"
 ```
-**Status**: ✅ Fixed - Script syntax validated
+**Status**: âœ… Fixed - Script syntax validated
 
 #### Step 1.4: Extract Range Platform Configuration
 **Timestamp**: 2026-01-11  
@@ -62,7 +62,7 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 .\rangetemplate_extract.ps1 -FolderName "rangeplatform" -OutputFile "rangeplatform_vms.json"
 ```
 **Output Log**: extraction_log.txt  
-**Status**: ✅ Complete - Extraction successful, JSON file created
+**Status**: âœ… Complete - Extraction successful, JSON file created
 
 #### Step 1.5: Copy Extraction Results to Rangecomp Directory
 **Timestamp**: 2026-01-11  
@@ -70,7 +70,7 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 ```powershell
 Copy-Item "rangeplatform_vms.json" -Destination "..\..\..\infrastructure\terraform\range-templates\rangecomp\rangeplatform_vms.json"
 ```
-**Status**: ✅ Complete
+**Status**: âœ… Complete
 
 #### Step 1.6: Copy Extraction Results to Rangecomp Directory
 **Timestamp**: 2026-01-11  
@@ -78,7 +78,7 @@ Copy-Item "rangeplatform_vms.json" -Destination "..\..\..\infrastructure\terrafo
 ```powershell
 Copy-Item "rangeplatform_vms.json" -Destination "..\..\..\infrastructure\terraform\range-templates\rangecomp\rangeplatform_vms.json"
 ```
-**Status**: ✅ Complete
+**Status**: âœ… Complete
 
 #### Step 1.7: Generate Terraform VM Resources from JSON
 **Timestamp**: 2026-01-11  
@@ -87,7 +87,7 @@ Copy-Item "rangeplatform_vms.json" -Destination "..\..\..\infrastructure\terrafo
 cd "e:\Baker Street Labs v.2\baker-street-labs-2.0\infrastructure\terraform\range-templates\rangecomp"
 .\generate_terraform_from_json.ps1 -InputJson "rangeplatform_vms.json" -OutputTf "rangecomp_vms.tf" -RangeName "rangecomp"
 ```
-**Status**: ✅ Complete - Terraform resources generated (rangecomp_vms.tf)
+**Status**: âœ… Complete - Terraform resources generated (rangecomp_vms.tf)
 
 #### Step 1.8: Update rangecomp.tf with VM IDs
 **Timestamp**: 2026-01-11  
@@ -96,7 +96,7 @@ cd "e:\Baker Street Labs v.2\baker-street-labs-2.0\infrastructure\terraform\rang
 # Extracted VM resource names from rangecomp_vms.tf
 # Updated locals.vm_ids in rangecomp.tf
 ```
-**Status**: ✅ Complete - VM IDs added to locals block
+**Status**: âœ… Complete - VM IDs added to locals block
 
 #### Step 1.9: Create terraform.tfvars with IP Addresses
 **Timestamp**: 2026-01-11  
@@ -107,7 +107,7 @@ cd "e:\Baker Street Labs v.2\baker-street-labs-2.0\infrastructure\terraform\rang
 # - VM IP addresses (172.24.0.0/16 network) for all extracted VMs
 # - Network configuration (Users: .2.0/24, Services: .3.0/24, Infrastructure: .4.0/24)
 ```
-**Status**: ✅ Complete - terraform.tfvars created with IP assignments for all VMs
+**Status**: âœ… Complete - terraform.tfvars created with IP assignments for all VMs
 
 ---
 
@@ -116,12 +116,12 @@ cd "e:\Baker Street Labs v.2\baker-street-labs-2.0\infrastructure\terraform\rang
 #### Step 2.1: Generate Terraform Configuration
 **Timestamp**: TBD  
 **Command**: Generate rangecomp.tf from template + extracted data  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 #### Step 2.2: Create terraform.tfvars
 **Timestamp**: TBD  
 **Command**: Create tfvars file with IP addresses for rangecomp  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 ---
 
@@ -135,7 +135,7 @@ cd "e:\Baker Street Labs v.2\baker-street-labs-2.0\infrastructure\terraform\rang
 terraform init
 ```
 **Output Log**: terraform_init.log  
-**Status**: ⏳ Executing...
+**Status**: â³ Executing...
 
 #### Step 3.2: Terraform Validation
 **Timestamp**: 2026-01-11  
@@ -144,7 +144,7 @@ terraform init
 terraform validate
 ```
 **Output Log**: terraform_validate.log  
-**Status**: ✅ Complete - Configuration validated
+**Status**: âœ… Complete - Configuration validated
 
 #### Step 3.3: Update terraform.tfvars with Cluster Information
 **Timestamp**: 2026-01-11  
@@ -153,7 +153,7 @@ terraform validate
 # Extracted cluster name from rangeplatform_vms.json
 # Updated terraform.tfvars with actual cluster name
 ```
-**Status**: ✅ Complete - Cluster name extracted and updated
+**Status**: âœ… Complete - Cluster name extracted and updated
 
 #### Step 3.4: Terraform Plan
 **Timestamp**: 2026-01-11  
@@ -163,12 +163,12 @@ terraform plan -var-file="terraform.tfvars" -out="terraform.tfplan"
 ```
 **Output Log**: terraform_plan.log  
 **Plan File**: terraform.tfplan  
-**Status**: ⏳ Executing...
+**Status**: â³ Executing...
 
 #### Step 3.3: Terraform Apply
 **Timestamp**: TBD  
 **Command**: `terraform apply -var-file="terraform.tfvars"`  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 ---
 
@@ -177,7 +177,7 @@ terraform plan -var-file="terraform.tfvars" -out="terraform.tfplan"
 #### Step 4.1: Configure PAN-OS Firewall
 **Timestamp**: TBD  
 **Command**: Configure firewall zones, address objects, security rules  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 ---
 
@@ -186,17 +186,17 @@ terraform plan -var-file="terraform.tfvars" -out="terraform.tfplan"
 #### Step 5.1: Create AD OUs
 **Timestamp**: TBD  
 **Command**: Create Organizational Units for rangecomp  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 #### Step 5.2: Create AD Groups
 **Timestamp**: TBD  
 **Command**: Create security groups  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 #### Step 5.3: Create AD Users
 **Timestamp**: TBD  
 **Command**: Create user accounts  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 ---
 
@@ -205,12 +205,12 @@ terraform plan -var-file="terraform.tfvars" -out="terraform.tfplan"
 #### Step 6.1: Domain Join Clients
 **Timestamp**: TBD  
 **Command**: Join Windows clients to domain  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 #### Step 6.2: Configure Network
 **Timestamp**: TBD  
 **Command**: Configure network adapters, DNS, gateway  
-**Status**: ⏳ Pending
+**Status**: â³ Pending
 
 ---
 
@@ -231,52 +231,52 @@ terraform plan -var-file="terraform.tfvars" -out="terraform.tfplan"
 
 ## Build Summary
 
-### ✅ Completed Phases
+### âœ… Completed Phases
 
 **Phase 1: Preparation & Extraction**
-- ✅ Created PROGRESS.md tracking file
-- ✅ Fixed PowerShell script syntax error (SecretsFile parameter)
-- ✅ Extracted rangeplatform configuration from vCenter
-- ✅ Copied extraction results to rangecomp directory
-- ✅ Generated Terraform VM resources from JSON (rangecomp_vms.tf)
+- âœ… Created PROGRESS.md tracking file
+- âœ… Fixed PowerShell script syntax error (SecretsFile parameter)
+- âœ… Extracted rangeplatform configuration from vCenter
+- âœ… Copied extraction results to rangecomp directory
+- âœ… Generated Terraform VM resources from JSON (rangecomp_vms.tf)
 
 **Phase 2: Terraform Configuration**
-- ✅ Created terraform.tfvars.example template
-- ✅ Generated terraform.tfvars with:
+- âœ… Created terraform.tfvars.example template
+- âœ… Generated terraform.tfvars with:
   - vSphere credentials (from .secrets)
   - VM IP addresses (172.24.0.0/16 network)
   - Network configuration
   - Cluster name (extracted from rangeplatform)
 
 **Phase 3: Infrastructure Provisioning**
-- ✅ Terraform initialized (terraform init)
-- ✅ Terraform configuration validated (terraform validate)
-- ✅ Terraform plan created (terraform plan)
+- âœ… Terraform initialized (terraform init)
+- âœ… Terraform configuration validated (terraform validate)
+- âœ… Terraform plan created (terraform plan)
 
-### ⏳ Pending Steps
+### â³ Pending Steps
 
 **Phase 3 (Continued)**
-- ⏳ Review terraform plan output
-- ⏳ Update datacenter name in terraform.tfvars (if needed)
-- ⏳ Execute terraform apply to provision VMs
+- â³ Review terraform plan output
+- â³ Update datacenter name in terraform.tfvars (if needed)
+- â³ Execute terraform apply to provision VMs
 
 **Phase 4: Firewall Configuration**
-- ⏳ Configure PAN-OS firewall zones
-- ⏳ Create address objects
-- ⏳ Create security rules
-- ⏳ Commit firewall configuration
+- â³ Configure PAN-OS firewall zones
+- â³ Create address objects
+- â³ Create security rules
+- â³ Commit firewall configuration
 
 **Phase 5: Active Directory Configuration**
-- ⏳ Create OU structure
-- ⏳ Create security groups
-- ⏳ Create user accounts
-- ⏳ Configure DNS records
+- â³ Create OU structure
+- â³ Create security groups
+- â³ Create user accounts
+- â³ Configure DNS records
 
 **Phase 6: Client Configuration**
-- ⏳ Domain join clients
-- ⏳ Configure network adapters
-- ⏳ Assign users/groups
-- ⏳ Apply GPOs
+- â³ Domain join clients
+- â³ Configure network adapters
+- â³ Assign users/groups
+- â³ Apply GPOs
 
 ---
 
